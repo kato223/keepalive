@@ -1,0 +1,70 @@
+#!/bin/bash
+
+function printusage { 
+
+echo "Usage:"
+echo ""
+echo "$0 <window title> <interval>"
+echo "Keeps terminal sessions alive by sending two characters to each window to make window appear active. Window title and interval can be specified."
+echo
+echo "Mandatory Arguments"
+echo 
+echo "<window title> Part of the title of a window or windows that you wish to keep alive. If you are using multiple windows, use part of the window title that does not change based on window content such as the name of the application"
+echo "<interval> The time, in seconds, between sending keep alive characters"
+
+echo "Requires xdotool"
+exit
+}
+
+if [ -z $1 ] || [ -z $2 ] 
+then 
+	printusage
+fi 
+
+clear
+
+case $1 in
+	aterm|urxvt|xterm)
+		cl=classname
+	;;
+	CSSH|CSSH:)
+		cl=name	
+	;;
+	*)
+		cl=class
+	;;
+esac
+
+interval=$2
+windowname="$1"
+xdotool_present=$(type xdotool > /dev/null 2>&1 || exit 1)
+
+#quick sanity check to make sure xdotool is installed
+if [ $? -eq 1 ] 
+then 
+	echo "Please install xdotool before continuing!"
+fi
+
+#watch -n $interval xdotool search -name $windowname | while read window ; do xdotool key -window $window d ; done
+
+echo "Running keepalive with a $interval second delay."
+echo "Running...Press [CTRL+C] to stop..."
+
+while :
+do 
+	windows=$(xdotool search -$cl $windowname)
+
+	if [ -z "$windows" ] 
+	then
+		echo "No windows with '$windowname' in title found!"
+	fi
+	
+	for w in $windows
+	do
+		windowtitle=$(xdotool getwindowname $w)
+		echo "Sending keepalive to window: $windowtitle" 
+		$(xdotool key -window $w space BackSpace) #Send a space and a backspace to keep terminal alive
+	done
+	sleep $2
+	echo "------"
+done
